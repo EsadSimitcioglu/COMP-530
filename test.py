@@ -86,6 +86,7 @@ def read_DGH(DGH_file: str):
     for element in mystr:
         tab_counter = 0
         if element[0] != "\t":
+            element = element.replace("\n", "")
             new_node = Node(element, 0)
             root.child = new_node
             pre_tab_counter += 1
@@ -169,24 +170,33 @@ def dfs_in_dgh(root, node_name):
             stack.append(neighbor)
 
 
-def find_ec_domains(DGHs, ec_list):
-    domain_list = list(DGHs.values())
-    domain_dict = dict()
-    generalized_node_list = list()
+def generalize_data(DGHs, ec_list):
+    domain_name_list = list(DGHs.values())
+    domain_name_dict = dict()
+    generalized_ec_list = list()
 
-    for domain in domain_list:
+    for domain in domain_name_list:
         domain_name = domain.domain_name
         for ec in ec_list:
             node_list = list()
+            generalized_data_list = list()
             for data in ec:
-                if data[domain_name] in domain_dict:
-                    selected_node = domain_dict[data[domain_name]]
+                if data[domain_name] in domain_name_dict:
+                    selected_node = domain_name_dict[data[domain_name]]
                 else:
                     selected_node = dfs_in_dgh(domain.child, data[domain_name])
-                    domain_dict[data[domain_name]] = selected_node
+                    domain_name_dict[data[domain_name]] = selected_node
                 node_list.append(selected_node)
-            generalized_node_list.append(traverse_generalize(node_list))
-        print(generalized_node_list)
+
+            traversed_node_list = traverse_generalize(node_list)
+            generalized_domain_list = generalize_nodes(traversed_node_list)
+
+            for data in ec:
+                data[domain_name] = generalized_domain_list[0].name
+                generalized_data_list.append(data)
+
+    return ec_list
+
 
 def traverse_generalize(node_list):
     depth_list = list()
@@ -204,9 +214,7 @@ def traverse_generalize(node_list):
     else:
         traversed_node_list = node_list
 
-    generalized_node_list = generalize_nodes(traversed_node_list)
-
-    return generalized_node_list
+    return traversed_node_list
 
 
 def generalize_nodes(generalized_node_list):
@@ -263,9 +271,7 @@ def random_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
     # TODO: START WRITING YOUR CODE HERE. Do not modify code in this function above this line.
 
     ec_list = find_ec_list(raw_dataset, 2)
-    find_ec_domains(DGHs, ec_list)
-
-    print(123)
+    clusters = generalize_data(DGHs, ec_list)
 
     # Store your results in the list named "clusters".
     # Order of the clusters is important. First cluster should be the first EC, second cluster second EC, ...
@@ -279,8 +285,8 @@ def random_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
             anonymized_dataset[item['index']] = item
             del item['index']
 
-    # write_dataset(anonymized_dataset, output_file)
+    write_dataset(anonymized_dataset, output_file)
 
 
 # cost_md = cost_MD(raw_file, anonymized_file, "DGHs")
-random_anonymizer("adult-hw1.csv", "DGHs", 2, "output", 10)
+random_anonymizer("adult-hw1.csv", "DGHs", 2, "output.csv", 10)
