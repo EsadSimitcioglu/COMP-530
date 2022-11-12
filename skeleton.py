@@ -11,6 +11,7 @@ import sys
 from copy import deepcopy
 import numpy as np
 import datetime
+from randomized_anonymizer_functions import find_ec_list, generalize_data
 
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
     sys.stdout.write("Requires Python 3.x.\n")
@@ -211,6 +212,9 @@ def random_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
     # TODO: START WRITING YOUR CODE HERE. Do not modify code in this function above this line.
     # Store your results in the list named "clusters". 
     # Order of the clusters is important. First cluster should be the first EC, second cluster second EC, ...
+
+    ec_list = find_ec_list(raw_dataset, 2)
+    clusters = generalize_data(DGHs, ec_list)
 
     # END OF STUDENT'S CODE. Do not modify code in this function below this line.
 
