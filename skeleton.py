@@ -11,6 +11,8 @@ import sys
 from copy import deepcopy
 import numpy as np
 import datetime
+
+from cost_functions import add_cost_MD_column_dataset, find_generalization_cost_in_domain
 from randomized_anonymizer_functions import find_ec_list, generalize_data
 
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
@@ -70,6 +72,8 @@ class Node:
             self.child.append(child)
 
 
+
+
 class Root:
 
     def __init__(self, child=None):
@@ -84,6 +88,18 @@ class Root:
                 last_node = last_node.child[-1]
 
             return last_node
+
+    def count_leaf_node(self):
+        leaf_nodes = []
+        self.count_leaf_node_helper_fun(leaf_nodes)
+        return len(leaf_nodes)
+
+    def count_leaf_node_helper_fun(self, leaf_nodes):
+        if not self.child:
+            leaf_nodes.append(self)
+        else:
+            for child_index in range(len(self.child)):
+                self.child[child_index].count_leaf_node_helper_fun(leaf_nodes)
 
 
 def read_DGH(DGH_file: str):
@@ -157,9 +173,17 @@ def cost_MD(raw_dataset_file: str, anonymized_dataset_file: str,
     assert (len(raw_dataset) > 0 and len(raw_dataset) == len(anonymized_dataset)
             and len(raw_dataset[0]) == len(anonymized_dataset[0]))
     DGHs = read_DGHs(DGH_folder)
+    anonymized_dataset = add_cost_MD_column_dataset(anonymized_dataset)
+    domain_name_list = list(DGHs.values())
+    cost = 0
 
-    # TODO: complete this function.
-    return -999
+    for domain in domain_name_list:
+        anonymized_dataset = find_generalization_cost_in_domain(domain, raw_dataset, anonymized_dataset)
+
+    for anonymized_data in anonymized_dataset:
+        cost += anonymized_data["cost_MD"]
+
+    return cost
 
 
 def cost_LM(raw_dataset_file: str, anonymized_dataset_file: str,
