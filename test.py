@@ -2,6 +2,7 @@ import csv
 import glob
 import os
 import cost_functions
+from helper import Node, Root
 
 import numpy as np
 
@@ -42,44 +43,7 @@ def write_dataset(dataset, dataset_file: str) -> bool:
     return True
 
 
-class Node:
 
-    def __init__(self, name, depth, parent=None, child=None):
-        self.name = name
-        self.depth = depth
-        self.parent = parent
-        self.child = list()
-        if child is not None:
-            self.child.append(child)
-
-    def count_leaf_node(self):
-        leaf_nodes = []
-        self.count_leaf_node_helper_fun(leaf_nodes)
-        return len(leaf_nodes)
-
-    def count_leaf_node_helper_fun(self, leaf_nodes):
-        if not self.child:
-            leaf_nodes.append(self)
-        else:
-            for child in self.child:
-                child.count_leaf_node_helper_fun(leaf_nodes)
-
-
-class Root:
-
-    def __init__(self, domain_name, child=None):
-        self.domain_name = domain_name
-        self.child = child
-
-    def elevator(self, depth_of_tree):
-        if depth_of_tree == 1:
-            return self.child
-        else:
-            last_node = self.child
-            for i in range(depth_of_tree - 1):
-                last_node = last_node.child[-1]
-
-            return last_node
 
 
 def read_DGH(DGH_file: str):
@@ -151,19 +115,13 @@ def cost_MD(raw_dataset_file: str, anonymized_dataset_file: str,
     assert (len(raw_dataset) > 0 and len(raw_dataset) == len(anonymized_dataset)
             and len(raw_dataset[0]) == len(anonymized_dataset[0]))
     DGHs = read_DGHs(DGH_folder)
-    anonymized_dataset = add_cost_column_dataset(anonymized_dataset)
+    anonymized_dataset = cost_functions.add_cost_MD_column_dataset(anonymized_dataset)
     domain_name_list = list(DGHs.values())
-    cost = 0
 
-    for domain in domain_name_list:
-        anonymized_dataset = find_generalization_cost_in_domain(domain, raw_dataset, anonymized_dataset)
-
-    for anonymized_data in anonymized_dataset:
-        cost += anonymized_data["cost_MD"]
+    anonymized_dataset = cost_functions.find_val_MD(domain_name_list, raw_dataset, anonymized_dataset)
+    cost = cost_functions.find_table_MD(anonymized_dataset)
 
     return cost
-
-
 
 
 def add_cost_column_dataset(anonymized_dataset):
@@ -189,7 +147,8 @@ def find_generalization_cost_in_domain(domain, raw_dataset, anonymized_dataset):
         if anonymized_data_domain_name in domain_name_dict:
             anonymized_dataset_depth = domain_name_dict[anonymized_data_domain_name]
         else:
-            anonymized_dataset_depth = dfs_in_dgh(domain.child, anonymized_dataset[data_index][domain.domain_name]).depth
+            anonymized_dataset_depth = dfs_in_dgh(domain.child,
+                                                  anonymized_dataset[data_index][domain.domain_name]).depth
             domain_name_dict[anonymized_data_domain_name] = anonymized_dataset_depth
 
         cost_of_generalization = raw_dataset_depth - anonymized_dataset_depth
@@ -199,8 +158,7 @@ def find_generalization_cost_in_domain(domain, raw_dataset, anonymized_dataset):
 
 
 def dfs_in_dgh(root, node_name):
-
-    if(root.name == node_name):
+    if (root.name == node_name):
         return root
 
     stack, path = [root], []
@@ -236,19 +194,14 @@ def cost_LM(raw_dataset_file: str, anonymized_dataset_file: str,
 
     anonymized_dataset = cost_functions.add_cost_LM_column_dataset(anonymized_dataset)
     domain_name_list = list(DGHs.values())
+    m = len(domain_name_list)
 
-    cost = 0
+    anonymized_dataset = cost_functions.find_val_LM(domain_name_list, anonymized_dataset)
+    cost_functions.find_rec_LM(anonymized_dataset, m)
+    cost = cost_functions.find_table_LM(anonymized_dataset)
 
-    for domain in domain_name_list:
-        total_leaf_count = domain.child.count_leaf_node
-        anonymized_dataset = cost_functions.find_val_LM(domain,total_leaf_count,anonymized_dataset)
-
-    for anonymized_data in anonymized_dataset:
-
-
-    # TODO: complete this function.
-    return -999
+    return cost
 
 
 # cost_md = cost_MD(raw_file, anonymized_file, "DGHs")
-cost_MD("adult-hw1.csv", "output.csv", "DGHs")
+print(cost_LM("adult-hw1.csv", "output.csv", "DGHs"))

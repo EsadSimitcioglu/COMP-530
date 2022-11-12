@@ -12,7 +12,8 @@ from copy import deepcopy
 import numpy as np
 import datetime
 
-from cost_functions import add_cost_MD_column_dataset, find_generalization_cost_in_domain
+from helper import Node, Root
+import cost_functions
 from randomized_anonymizer_functions import find_ec_list, generalize_data
 
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
@@ -63,43 +64,7 @@ def write_dataset(dataset, dataset_file: str) -> bool:
     return True
 
 
-class Node:
 
-    def __init__(self, name, child=None):
-        self.name = name
-        self.child = list()
-        if child is not None:
-            self.child.append(child)
-
-
-
-
-class Root:
-
-    def __init__(self, child=None):
-        self.child = child
-
-    def elevator(self, depth_of_tree):
-        if depth_of_tree == 1:
-            return self.child
-        else:
-            last_node = self.child
-            for i in range(depth_of_tree - 1):
-                last_node = last_node.child[-1]
-
-            return last_node
-
-    def count_leaf_node(self):
-        leaf_nodes = []
-        self.count_leaf_node_helper_fun(leaf_nodes)
-        return len(leaf_nodes)
-
-    def count_leaf_node_helper_fun(self, leaf_nodes):
-        if not self.child:
-            leaf_nodes.append(self)
-        else:
-            for child_index in range(len(self.child)):
-                self.child[child_index].count_leaf_node_helper_fun(leaf_nodes)
 
 
 def read_DGH(DGH_file: str):
@@ -110,12 +75,16 @@ def read_DGH(DGH_file: str):
     """
     f = open(DGH_file, "r")
     mystr = f.readlines()
+    folder_name = "DGHs/"
+    file_extension = ".txt"
+    domain_name = f.name[len(folder_name):-len(file_extension)]
     pre_tab_counter = 0
-    root = Root(True)
+    root = Root(domain_name)
     for element in mystr:
         tab_counter = 0
         if element[0] != "\t":
-            new_node = Node(element)
+            element = element.replace("\n", "")
+            new_node = Node(element, 0)
             root.child = new_node
             pre_tab_counter += 1
 
@@ -125,8 +94,9 @@ def read_DGH(DGH_file: str):
                     tab_counter += 1
 
             current_node = root.elevator(tab_counter)
-
-            new_node = Node(element)
+            node_name = element.replace("\n", "")
+            node_name = node_name.replace("\t", "")
+            new_node = Node(node_name, tab_counter, current_node)
             current_node.child.append(new_node)
 
     return root
@@ -173,15 +143,11 @@ def cost_MD(raw_dataset_file: str, anonymized_dataset_file: str,
     assert (len(raw_dataset) > 0 and len(raw_dataset) == len(anonymized_dataset)
             and len(raw_dataset[0]) == len(anonymized_dataset[0]))
     DGHs = read_DGHs(DGH_folder)
-    anonymized_dataset = add_cost_MD_column_dataset(anonymized_dataset)
+    anonymized_dataset = cost_functions.add_cost_MD_column_dataset(anonymized_dataset)
     domain_name_list = list(DGHs.values())
-    cost = 0
 
-    for domain in domain_name_list:
-        anonymized_dataset = find_generalization_cost_in_domain(domain, raw_dataset, anonymized_dataset)
-
-    for anonymized_data in anonymized_dataset:
-        cost += anonymized_data["cost_MD"]
+    anonymized_dataset = cost_functions.find_val_MD(domain_name_list, raw_dataset, anonymized_dataset)
+    cost = cost_functions.find_table_MD(anonymized_dataset)
 
     return cost
 
@@ -204,8 +170,15 @@ def cost_LM(raw_dataset_file: str, anonymized_dataset_file: str,
             and len(raw_dataset[0]) == len(anonymized_dataset[0]))
     DGHs = read_DGHs(DGH_folder)
 
-    # TODO: complete this function.
-    return -999
+    anonymized_dataset = cost_functions.add_cost_LM_column_dataset(anonymized_dataset)
+    domain_name_list = list(DGHs.values())
+    m = len(domain_name_list)
+
+    anonymized_dataset = cost_functions.find_val_LM(domain_name_list, anonymized_dataset)
+    cost_functions.find_rec_LM(anonymized_dataset, m)
+    cost = cost_functions.find_table_LM(anonymized_dataset)
+
+    return cost
 
 
 def random_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
