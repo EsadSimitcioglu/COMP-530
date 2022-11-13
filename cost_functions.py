@@ -20,20 +20,20 @@ def find_val_MD(domain_name_list, raw_dataset, anonymized_dataset):
 
         for data_index in range(len(raw_dataset)):
 
-            raw_data_domain_name = raw_dataset[data_index][domain.domain_name]
-            anonymized_data_domain_name = anonymized_dataset[data_index][domain.domain_name]
+            raw_data_domain_name = raw_dataset[data_index][domain.name]
+            anonymized_data_domain_name = anonymized_dataset[data_index][domain.name]
 
             if raw_data_domain_name in domain_name_dict:
                 raw_dataset_depth = domain_name_dict[raw_data_domain_name]
             else:
-                raw_dataset_depth = dfs_in_dgh(domain.child, raw_dataset[data_index][domain.domain_name]).depth
+                raw_dataset_depth = dfs_in_dgh(domain.child, raw_dataset[data_index][domain.name]).depth
                 domain_name_dict[raw_data_domain_name] = raw_dataset_depth
 
             if anonymized_data_domain_name in domain_name_dict:
                 anonymized_dataset_depth = domain_name_dict[anonymized_data_domain_name]
             else:
                 anonymized_dataset_depth = dfs_in_dgh(domain.child,
-                                                      anonymized_dataset[data_index][domain.domain_name]).depth
+                                                      anonymized_dataset[data_index][domain.name]).depth
                 domain_name_dict[anonymized_data_domain_name] = anonymized_dataset_depth
 
             cost_of_generalization = raw_dataset_depth - anonymized_dataset_depth
@@ -49,7 +49,7 @@ def find_table_MD(anonymized_dataset):
 
 def find_val_LM(domain_name_list, anonymized_dataset):
     for domain in domain_name_list:
-        domain_name = domain.domain_name
+        domain_name = domain.name
         val_lm_dict = dict()
         total_leaf_count = domain.child.count_leaf_node()
 

@@ -30,10 +30,9 @@ def dfs_in_dgh(root, node_name):
 
 def generalize_data(DGHs, ec_list):
     domain_name_list = list(DGHs.values())
-    generalized_ec_list = list()
 
     for domain in domain_name_list:
-        domain_name = domain.domain_name
+        domain_name = domain.name
         domain_name_dict = dict()
 
         for ec in ec_list:

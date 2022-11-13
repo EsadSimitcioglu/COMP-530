@@ -24,7 +24,7 @@ class Node:
 class Root:
 
     def __init__(self, domain_name, child=None):
-        self.domain_name = domain_name
+        self.name = domain_name
         self.child = child
 
     def elevator(self, depth_of_tree):

@@ -2,6 +2,9 @@ import csv
 import glob
 import os
 import cost_functions
+from clustering_anonymizer_functions import init_generalization_cost_dict, add_cost_column_to_dataset, \
+    add_check_column_to_dataset, compute_generalization_cost, \
+    find_least_generalization_cost
 from helper import Node, Root
 
 import numpy as np
@@ -98,81 +101,6 @@ def read_DGHs(DGH_folder: str) -> dict:
     return DGHs
 
 
-def cost_MD(raw_dataset_file: str, anonymized_dataset_file: str,
-            DGH_folder: str) -> float:
-    """Calculate Distortion Metric (MD) cost between two datasets.
-
-    Args:
-        raw_dataset_file (str): the path to the raw dataset file.
-        anonymized_dataset_file (str): the path to the anonymized dataset file.
-        DGH_folder (str): the path to the DGH directory.
-
-    Returns:
-        float: the calculated cost.
-    """
-    raw_dataset = read_dataset(raw_dataset_file)
-    anonymized_dataset = read_dataset(anonymized_dataset_file)
-    assert (len(raw_dataset) > 0 and len(raw_dataset) == len(anonymized_dataset)
-            and len(raw_dataset[0]) == len(anonymized_dataset[0]))
-    DGHs = read_DGHs(DGH_folder)
-    anonymized_dataset = cost_functions.add_cost_MD_column_dataset(anonymized_dataset)
-    domain_name_list = list(DGHs.values())
-
-    anonymized_dataset = cost_functions.find_val_MD(domain_name_list, raw_dataset, anonymized_dataset)
-    cost = cost_functions.find_table_MD(anonymized_dataset)
-
-    return cost
-
-
-def add_cost_column_dataset(anonymized_dataset):
-    for anonymized_data in anonymized_dataset:
-        anonymized_data["cost_MD"] = 0
-    return anonymized_dataset
-
-
-def find_generalization_cost_in_domain(domain, raw_dataset, anonymized_dataset):
-    domain_name_dict = dict()
-
-    for data_index in range(len(raw_dataset)):
-
-        raw_data_domain_name = raw_dataset[data_index][domain.domain_name]
-        anonymized_data_domain_name = anonymized_dataset[data_index][domain.domain_name]
-
-        if raw_data_domain_name in domain_name_dict:
-            raw_dataset_depth = domain_name_dict[raw_data_domain_name]
-        else:
-            raw_dataset_depth = dfs_in_dgh(domain.child, raw_dataset[data_index][domain.domain_name]).depth
-            domain_name_dict[raw_data_domain_name] = raw_dataset_depth
-
-        if anonymized_data_domain_name in domain_name_dict:
-            anonymized_dataset_depth = domain_name_dict[anonymized_data_domain_name]
-        else:
-            anonymized_dataset_depth = dfs_in_dgh(domain.child,
-                                                  anonymized_dataset[data_index][domain.domain_name]).depth
-            domain_name_dict[anonymized_data_domain_name] = anonymized_dataset_depth
-
-        cost_of_generalization = raw_dataset_depth - anonymized_dataset_depth
-        anonymized_dataset[data_index]["cost_MD"] += cost_of_generalization
-
-    return anonymized_dataset
-
-
-def dfs_in_dgh(root, node_name):
-    if (root.name == node_name):
-        return root
-
-    stack, path = [root], []
-
-    while stack:
-        vertex = stack.pop()
-        if vertex in path:
-            continue
-        path.append(vertex)
-        for neighbor in vertex.child:
-            if neighbor.name == node_name:
-                return neighbor
-            stack.append(neighbor)
-
 
 def cost_LM(raw_dataset_file: str, anonymized_dataset_file: str,
             DGH_folder: str) -> float:
@@ -203,5 +131,36 @@ def cost_LM(raw_dataset_file: str, anonymized_dataset_file: str,
     return cost
 
 
+
+def clustering_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
+                          output_file: str):
+    """ Clustering-based anonymization a dataset, given a set of DGHs.
+
+    Args:
+        raw_dataset_file (str): the path to the raw dataset file.
+        DGH_folder (str): the path to the DGH directory.
+        k (int): k-anonymity parameter.
+        output_file (str): the path to the output dataset file.
+    """
+    raw_dataset = read_dataset(raw_dataset_file)
+    DGHs = read_DGHs(DGH_folder)
+    generalization_cost_dict = init_generalization_cost_dict(DGHs)
+    raw_dataset = add_check_column_to_dataset(raw_dataset)
+    raw_dataset = add_cost_column_to_dataset(raw_dataset)
+
+    for raw_data in raw_dataset:
+        raw_data["check"] = True
+        for raw_anon_data in raw_dataset:
+            if not raw_anon_data["check"]:
+                compute_generalization_cost(DGHs, generalization_cost_dict, raw_data, raw_anon_data)
+        find_least_generalization_cost(generalization_cost_dict, raw_data, k)
+
+
+
+    # TODO: complete this function.
+
+    # Finally, write dataset to a file
+    # write_dataset(anonymized_dataset, output_file)
+
 # cost_md = cost_MD(raw_file, anonymized_file, "DGHs")
-print(cost_LM("adult-hw1.csv", "output.csv", "DGHs"))
+print(clustering_anonymizer("adult-hw1.csv", "DGHs", 2, "output.csv"))
