@@ -4,7 +4,8 @@ import os
 import cost_functions
 from clustering_anonymizer_functions import init_generalization_cost_dict, add_cost_column_to_dataset, \
     add_check_column_to_dataset, compute_generalization_cost, \
-    find_least_generalization_cost
+    find_least_generalization_cost, add_index_column_to_dataset, \
+    insert_anonymized_data_to_dataset
 from helper import Node, Root
 
 import numpy as np
@@ -145,22 +146,25 @@ def clustering_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
     raw_dataset = read_dataset(raw_dataset_file)
     DGHs = read_DGHs(DGH_folder)
     generalization_cost_dict = init_generalization_cost_dict(DGHs)
-    raw_dataset = add_check_column_to_dataset(raw_dataset)
-    raw_dataset = add_cost_column_to_dataset(raw_dataset)
+    anonymized_dataset = add_check_column_to_dataset(raw_dataset)
+    anonymized_dataset = add_cost_column_to_dataset(anonymized_dataset)
+    anonymized_dataset = add_index_column_to_dataset(anonymized_dataset)
 
-    for raw_data in raw_dataset:
+    for raw_data in anonymized_dataset:
         raw_data["check"] = True
-        for raw_anon_data in raw_dataset:
+        custom_dataset = list()
+        custom_dataset.append(raw_data)
+        for raw_anon_data in anonymized_dataset:
             if not raw_anon_data["check"]:
-                compute_generalization_cost(DGHs, generalization_cost_dict, raw_data, raw_anon_data)
-        find_least_generalization_cost(generalization_cost_dict, raw_data, k)
+                custom_dataset.append(compute_generalization_cost(DGHs, generalization_cost_dict, raw_data, raw_anon_data))
+        find_least_generalization_cost(DGHs, custom_dataset, k)
 
-
+    print(123)
 
     # TODO: complete this function.
 
     # Finally, write dataset to a file
-    # write_dataset(anonymized_dataset, output_file)
+    write_dataset(anonymized_dataset, output_file)
 
 # cost_md = cost_MD(raw_file, anonymized_file, "DGHs")
-print(clustering_anonymizer("adult-hw1.csv", "DGHs", 2, "output.csv"))
+print(clustering_anonymizer("adult-hw1.csv", "DGHs", 3, "output3.csv"))
