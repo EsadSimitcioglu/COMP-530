@@ -1,3 +1,4 @@
+import copy
 import csv
 import glob
 import os
@@ -10,6 +11,8 @@ from clustering_anonymizer_functions import init_generalization_cost_dict, add_c
 from helper import Node, Root
 
 import numpy as np
+
+from randomized_anonymizer_functions import find_ec_list, generalize_data
 
 
 def read_dataset(dataset_file: str):
@@ -102,7 +105,30 @@ def read_DGHs(DGH_folder: str) -> dict:
         DGHs[attribute_name] = read_DGH(DGH_file)
     return DGHs
 
+def cost_MD(raw_dataset_file: str, anonymized_dataset_file: str,
+            DGH_folder: str) -> float:
+    """Calculate Distortion Metric (MD) cost between two datasets.
 
+    Args:
+        raw_dataset_file (str): the path to the raw dataset file.
+        anonymized_dataset_file (str): the path to the anonymized dataset file.
+        DGH_folder (str): the path to the DGH directory.
+
+    Returns:
+        float: the calculated cost.
+    """
+    raw_dataset = read_dataset(raw_dataset_file)
+    anonymized_dataset = read_dataset(anonymized_dataset_file)
+    assert (len(raw_dataset) > 0 and len(raw_dataset) == len(anonymized_dataset)
+            and len(raw_dataset[0]) == len(anonymized_dataset[0]))
+    DGHs = read_DGHs(DGH_folder)
+    anonymized_dataset = cost_functions.add_cost_MD_column_dataset(anonymized_dataset)
+    domain_name_list = list(DGHs.values())
+
+    anonymized_dataset = cost_functions.find_val_MD(domain_name_list, raw_dataset, anonymized_dataset)
+    cost = cost_functions.find_table_MD(anonymized_dataset)
+
+    return cost
 
 def cost_LM(raw_dataset_file: str, anonymized_dataset_file: str,
             DGH_folder: str) -> float:
@@ -132,7 +158,48 @@ def cost_LM(raw_dataset_file: str, anonymized_dataset_file: str,
 
     return cost
 
+def random_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
+                      output_file: str, s: int):
+    """ K-anonymization a dataset, given a set of DGHs and a k-anonymity param.
 
+    Args:
+        raw_dataset_file (str): the path to the raw dataset file.
+        DGH_folder (str): the path to the DGH directory.
+        k (int): k-anonymity parameter.
+        output_file (str): the path to the output dataset file.
+        s (int): seed of the randomization function
+    """
+    raw_dataset = read_dataset(raw_dataset_file)
+    DGHs = read_DGHs(DGH_folder)
+
+    for i in range(len(raw_dataset)):  ##set indexing to not lose original places of records
+        raw_dataset[i]['index'] = i
+
+    raw_dataset = np.array(raw_dataset)
+    np.random.seed(s)  ## to ensure consistency between runs
+    np.random.shuffle(raw_dataset)  ##shuffle the dataset to randomize
+
+    clusters = []
+
+    D = len(raw_dataset)
+
+    # TODO: START WRITING YOUR CODE HERE. Do not modify code in this function above this line.
+    # Store your results in the list named "clusters".
+    # Order of the clusters is important. First cluster should be the first EC, second cluster second EC, ...
+
+    ec_list = find_ec_list(raw_dataset, k)
+    clusters = generalize_data(DGHs, ec_list)
+
+    # END OF STUDENT'S CODE. Do not modify code in this function below this line.
+
+    anonymized_dataset = [None] * D
+
+    for cluster in clusters:  # restructure according to previous indexes
+        for item in cluster:
+            anonymized_dataset[item['index']] = item
+            del item['index']
+
+    write_dataset(anonymized_dataset, output_file)
 
 def clustering_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
                           output_file: str):
@@ -181,7 +248,6 @@ def bottomup_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
 
     raw_dataset = read_dataset(raw_dataset_file)
     anonymized_dataset = add_check_column_to_dataset(raw_dataset)
-
     DGHs = read_DGHs(DGH_folder)
 
 
@@ -189,14 +255,17 @@ def bottomup_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
     maximum_generalization_count = find_max_height_DGHs(DGHs)
     gen_list = list()
     gen_list.append("00000000")
+    multiply = 0
 
     for iter in range(maximum_generalization_count):
+        temp_dataset = copy.deepcopy(anonymized_dataset)
         lattice = create_lattice(DGHs,gen_list,iter)
-        anonymized_dataset = try_lattice(DGHs, k, anonymized_dataset, lattice)
+        temp_dataset = try_lattice(DGHs, k, temp_dataset, lattice[(multiply*iter):])
 
-        if anonymized_dataset != []:
+        if temp_dataset != []:
+            anonymized_dataset = temp_dataset
             break
-
+        multiply += 8
     print(anonymized_dataset)
     # TODO: complete this function.
 
@@ -205,4 +274,4 @@ def bottomup_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
 
 #print(cost_LM("adult-hw1.csv", "output5.csv", "DGHs"))
 #clustering_anonymizer("adult-hw1.csv", "DGHs", 3, "output5.csv")
-bottomup_anonymizer("adult-hw1.csv", "DGHs", 3, "output6.csv")
+#bottomup_anonymizer("adult-hw1.csv", "DGHs", 3, "output6.csv")

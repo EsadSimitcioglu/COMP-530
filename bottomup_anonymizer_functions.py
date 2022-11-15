@@ -44,25 +44,28 @@ def create_lattice(DGHs, gen_list, current_index):
     for data in DGHs.values():
         temp = gen_list[current_index ]
         change = int(temp[char_index]) + 1
-        if change >= (data.max_depth):
+        if change == data.max_depth:
+            char_index += 1
             continue
         temp = change_char(temp, char_index, change)
-
         if not (temp in gen_list):
             gen_list.append(temp)
         char_index += 1
     return gen_list
 
-def is_satisfy_k_anonymity(anonymized_dataset, k):
+def is_satisfy_k_anonymity(DGHs, anonymized_dataset, k):
     k_counter = 0
     for raw_data in anonymized_dataset:
         if raw_data["check"]:
             continue
         raw_data["check"] = True
         for raw_anon_data in anonymized_dataset:
-            if raw_anon_data == raw_data:
+            is_equal = True
+            for domain in DGHs.values():
+                if raw_anon_data[domain.name] != raw_data[domain.name]:
+                    is_equal = False
+            if is_equal:
                 k_counter += 1
-
         if k_counter >= (k-1):
             k_counter = 0
             continue
@@ -73,20 +76,16 @@ def is_satisfy_k_anonymity(anonymized_dataset, k):
 
 def try_lattice(DGHs,k, raw_dataset, lattice):
     for height in lattice:
-
-        if(height == "00000000"):
-            continue
-
         anonymized_dataset = copy.deepcopy(raw_dataset)
         column_index = 0
         for domain in DGHs.values():
             for raw_data in anonymized_dataset:
                 column = raw_data[domain.name]
                 current_node = dfs_in_dgh(domain.child,column)
-                current_node = current_node.traverse(int(height[column_index]))
+                current_node = current_node.traverse(int(height[column_index]), domain.max_depth)
                 raw_data[domain.name] = current_node.name
             column_index += 1
-        if is_satisfy_k_anonymity(anonymized_dataset, k):
+        if is_satisfy_k_anonymity(DGHs,  anonymized_dataset, k):
             return anonymized_dataset
 
     return []

@@ -21,15 +21,26 @@ class Node:
             for child in self.child:
                 child.count_leaf_node_helper_fun(leaf_nodes)
 
-    def traverse(self, height_count):
+    def traverse(self, height_count, max_depth):
         current_node = self
 
         if height_count == 0:
             return current_node
+        aim_depth = max_depth - height_count
 
-        for _ in range(height_count):
-            current_node = current_node.parent
-        return current_node
+        if current_node.depth <= aim_depth:
+            return current_node
+
+        while True:
+            if current_node.parent != None:
+                current_node = current_node.parent
+
+                if current_node.name == "Any":
+                    return current_node
+
+                if current_node.parent.depth == aim_depth:
+                    return current_node
+
 
 
 class Root:

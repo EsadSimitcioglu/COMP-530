@@ -81,9 +81,6 @@ def find_least_generalization_cost(DGhs, custom_dataset: list, k):
     k_lowest_cost_dataset = sorted(custom_dataset, key=lambda d: d['cost'])[:k]
     k_lowest_cost_dataset = anonymize_ec(DGhs, k_lowest_cost_dataset)
 
-    if k_lowest_cost_dataset[0]["index"] == 48:
-        print(123)
-
     for k_lowest_data in k_lowest_cost_dataset:
         k_lowest_data["check"] = True
 
