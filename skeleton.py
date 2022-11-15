@@ -12,6 +12,9 @@ from copy import deepcopy
 import numpy as np
 import datetime
 
+from clustering_anonymizer_functions import init_generalization_cost_dict, add_cost_column_to_dataset, \
+    add_index_column_to_dataset, add_check_column_to_dataset, compute_generalization_cost, \
+    find_least_generalization_cost, delete_unnecessary_column_from_dataset
 from helper import Node, Root
 import cost_functions
 from randomized_anonymizer_functions import find_ec_list, generalize_data
@@ -237,11 +240,26 @@ def clustering_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
     """
     raw_dataset = read_dataset(raw_dataset_file)
     DGHs = read_DGHs(DGH_folder)
+    generalization_cost_dict = init_generalization_cost_dict(DGHs)
+    anonymized_dataset = add_check_column_to_dataset(raw_dataset)
+    anonymized_dataset = add_cost_column_to_dataset(anonymized_dataset)
+    anonymized_dataset = add_index_column_to_dataset(anonymized_dataset)
 
-    # TODO: complete this function.
+    for raw_data in anonymized_dataset:
+        if raw_data["check"]:
+            continue
+        raw_data["check"] = True
+        custom_dataset = list()
+        custom_dataset.append(raw_data)
+        for raw_anon_data in anonymized_dataset:
+            if not raw_anon_data["check"]:
+                custom_dataset.append(compute_generalization_cost(DGHs, generalization_cost_dict, raw_data, raw_anon_data))
+        find_least_generalization_cost(DGHs, custom_dataset, k)
 
+    delete_unnecessary_column_from_dataset(anonymized_dataset)
     # Finally, write dataset to a file
-    # write_dataset(anonymized_dataset, output_file)
+    write_dataset(anonymized_dataset, output_file)
+
 
 
 def bottomup_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,

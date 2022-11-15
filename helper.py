@@ -5,6 +5,7 @@ class Node:
         self.depth = depth
         self.parent = parent
         self.child = list()
+        self.count = 0
         if child is not None:
             self.child.append(child)
 
@@ -20,12 +21,23 @@ class Node:
             for child in self.child:
                 child.count_leaf_node_helper_fun(leaf_nodes)
 
+    def traverse(self, height_count):
+        current_node = self
+
+        if height_count == 0:
+            return current_node
+
+        for _ in range(height_count):
+            current_node = current_node.parent
+        return current_node
+
 
 class Root:
 
     def __init__(self, domain_name, child=None):
         self.name = domain_name
         self.child = child
+        self.max_depth = 0
 
     def elevator(self, depth_of_tree):
         if depth_of_tree == 1:
@@ -36,3 +48,6 @@ class Root:
                 last_node = last_node.child[-1]
 
             return last_node
+
+
+

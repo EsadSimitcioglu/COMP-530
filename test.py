@@ -2,10 +2,11 @@ import csv
 import glob
 import os
 import cost_functions
+from bottomup_anonymizer_functions import find_max_height_DGHs, create_lattice, try_lattice
 from clustering_anonymizer_functions import init_generalization_cost_dict, add_cost_column_to_dataset, \
     add_check_column_to_dataset, compute_generalization_cost, \
     find_least_generalization_cost, add_index_column_to_dataset, \
-    insert_anonymized_data_to_dataset
+    insert_anonymized_data_to_dataset, delete_unnecessary_column_from_dataset
 from helper import Node, Root
 
 import numpy as np
@@ -151,6 +152,8 @@ def clustering_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
     anonymized_dataset = add_index_column_to_dataset(anonymized_dataset)
 
     for raw_data in anonymized_dataset:
+        if raw_data["check"]:
+            continue
         raw_data["check"] = True
         custom_dataset = list()
         custom_dataset.append(raw_data)
@@ -159,12 +162,47 @@ def clustering_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
                 custom_dataset.append(compute_generalization_cost(DGHs, generalization_cost_dict, raw_data, raw_anon_data))
         find_least_generalization_cost(DGHs, custom_dataset, k)
 
-    print(123)
-
-    # TODO: complete this function.
-
+    delete_unnecessary_column_from_dataset(anonymized_dataset)
     # Finally, write dataset to a file
     write_dataset(anonymized_dataset, output_file)
 
-# cost_md = cost_MD(raw_file, anonymized_file, "DGHs")
-print(clustering_anonymizer("adult-hw1.csv", "DGHs", 3, "output3.csv"))
+
+
+def bottomup_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
+                        output_file: str):
+    """ Bottom up-based anonymization a dataset, given a set of DGHs.
+
+    Args:
+        raw_dataset_file (str): the path to the raw dataset file.
+        DGH_folder (str): the path to the DGH directory.
+        k (int): k-anonymity parameter.
+        output_file (str): the path to the output dataset file.
+    """
+
+    raw_dataset = read_dataset(raw_dataset_file)
+    anonymized_dataset = add_check_column_to_dataset(raw_dataset)
+
+    DGHs = read_DGHs(DGH_folder)
+
+
+
+    maximum_generalization_count = find_max_height_DGHs(DGHs)
+    gen_list = list()
+    gen_list.append("00000000")
+
+    for iter in range(maximum_generalization_count):
+        lattice = create_lattice(DGHs,gen_list,iter)
+        anonymized_dataset = try_lattice(DGHs, k, anonymized_dataset, lattice)
+
+        if anonymized_dataset != []:
+            break
+
+    print(anonymized_dataset)
+    # TODO: complete this function.
+
+    # Finally, write dataset to a file
+    # write_dataset(anonymized_dataset, output_file)
+
+#print(cost_LM("adult-hw1.csv", "output5.csv", "DGHs"))
+#clustering_anonymizer("adult-hw1.csv", "DGHs", 3, "output5.csv")
+bottomup_anonymizer("adult-hw1.csv", "DGHs", 3, "output6.csv")

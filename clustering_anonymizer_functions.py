@@ -12,23 +12,34 @@ def add_cost_column_to_dataset(raw_dataset):
         raw_data["cost"] = 0
     return raw_dataset
 
+
 def add_index_column_to_dataset(raw_dataset):
     index = 0
     for raw_data in raw_dataset:
         raw_data["index"] = index
-        index+=1
+        index += 1
     return raw_dataset
+
+def delete_unnecessary_column_from_dataset(anonymized_dataset):
+
+    for anon_data in anonymized_dataset:
+        del anon_data['index']
+        del anon_data['check']
+        del anon_data['cost']
+
 
 def find_top_most_data(anon_dataset):
     for anon_data in anon_dataset:
         if not anon_dataset["check"]:
             return anon_data
 
+
 def init_generalization_cost_dict(DGHs):
     generalization_cost_dict = dict()
     for domain in DGHs.keys():
         generalization_cost_dict[domain] = dict()
     return generalization_cost_dict
+
 
 def calculate_val_lm(total_leaf_count, anonnymized_node):
     if len(anonnymized_node.child) == 0:
@@ -42,7 +53,7 @@ def calculate_val_lm(total_leaf_count, anonnymized_node):
 
 
 def compute_generalization_cost(DGHs, generalization_cost_dict, anon_data, next_anon_data):
-
+    m = len(DGHs.values())
     for domain in DGHs.values():
         select_data = anon_data[domain.name]
         target_data = next_anon_data[domain.name]
@@ -62,12 +73,16 @@ def compute_generalization_cost(DGHs, generalization_cost_dict, anon_data, next_
             generalization_cost_dict[domain.name][key] = dict()
             generalization_cost_dict[domain.name][key]["cost"] = cost_lm
 
-        next_anon_data["cost"] += cost_lm
+        next_anon_data["cost"] += (cost_lm * (1 / m))
     return next_anon_data
 
-def find_least_generalization_cost(DGhs,custom_dataset : list, k):
-    k_lowest_cost_dataset = sorted(custom_dataset, key=lambda d: d['cost'])[:k-len(custom_dataset)]
-    generalize_data_2(DGhs,k_lowest_cost_dataset)
+
+def find_least_generalization_cost(DGhs, custom_dataset: list, k):
+    k_lowest_cost_dataset = sorted(custom_dataset, key=lambda d: d['cost'])[:k]
+    k_lowest_cost_dataset = anonymize_ec(DGhs, k_lowest_cost_dataset)
+
+    if k_lowest_cost_dataset[0]["index"] == 48:
+        print(123)
 
     for k_lowest_data in k_lowest_cost_dataset:
         k_lowest_data["check"] = True
@@ -75,25 +90,22 @@ def find_least_generalization_cost(DGhs,custom_dataset : list, k):
     for raw_data in custom_dataset:
         raw_data["cost"] = 0
 
-    return k_lowest_cost_dataset
-
 
 
 def insert_anonymized_data_to_dataset(raw_dataset, k_lowest_cost_dataset):
-
     for k_lowest_data in k_lowest_cost_dataset:
         raw_dataset[k_lowest_data["index"]] = k_lowest_data
     return raw_dataset
 
 
-def generalize_data_2(DGHs, ec):
+def anonymize_ec(DGHs, ec):
     domain_name_list = list(DGHs.values())
+    generalized_data_list = list()
 
     for domain in domain_name_list:
         domain_name = domain.name
         domain_name_dict = dict()
         node_list = list()
-        generalized_data_list = list()
         for data in ec:
             if data[domain_name] in domain_name_dict:
                 selected_node = domain_name_dict[data[domain_name]]
@@ -109,4 +121,4 @@ def generalize_data_2(DGHs, ec):
             data[domain_name] = generalized_domain_list[0].name
             generalized_data_list.append(data)
 
-    return ec
+    return generalized_data_list
