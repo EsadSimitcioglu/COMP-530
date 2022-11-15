@@ -4,11 +4,9 @@
 ##############################################################################
 
 import csv
-from enum import unique
 import glob
 import os
 import sys
-from copy import deepcopy
 import numpy as np
 import datetime
 
@@ -65,9 +63,6 @@ def write_dataset(dataset, dataset_file: str) -> bool:
         dict_writer.writeheader()
         dict_writer.writerows(dataset)
     return True
-
-
-
 
 
 def read_DGH(DGH_file: str):
@@ -209,11 +204,10 @@ def random_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
 
     D = len(raw_dataset)
 
-    # TODO: START WRITING YOUR CODE HERE. Do not modify code in this function above this line.
-    # Store your results in the list named "clusters". 
+    # Store your results in the list named "clusters".
     # Order of the clusters is important. First cluster should be the first EC, second cluster second EC, ...
 
-    ec_list = find_ec_list(raw_dataset, 2)
+    ec_list = find_ec_list(raw_dataset, k)
     clusters = generalize_data(DGHs, ec_list)
 
     # END OF STUDENT'S CODE. Do not modify code in this function below this line.
@@ -253,13 +247,13 @@ def clustering_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
         custom_dataset.append(raw_data)
         for raw_anon_data in anonymized_dataset:
             if not raw_anon_data["check"]:
-                custom_dataset.append(compute_generalization_cost(DGHs, generalization_cost_dict, raw_data, raw_anon_data))
+                custom_dataset.append(
+                    compute_generalization_cost(DGHs, generalization_cost_dict, raw_data, raw_anon_data))
         find_least_generalization_cost(DGHs, custom_dataset, k)
 
     delete_unnecessary_column_from_dataset(anonymized_dataset)
     # Finally, write dataset to a file
     write_dataset(anonymized_dataset, output_file)
-
 
 
 def bottomup_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
