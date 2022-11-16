@@ -266,12 +266,10 @@ def bottomup_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
             anonymized_dataset = temp_dataset
             break
         multiply += 8
-    print(anonymized_dataset)
-    # TODO: complete this function.
 
     # Finally, write dataset to a file
-    # write_dataset(anonymized_dataset, output_file)
+    write_dataset(anonymized_dataset, output_file)
 
 #print(cost_LM("adult-hw1.csv", "output5.csv", "DGHs"))
 #clustering_anonymizer("adult-hw1.csv", "DGHs", 3, "output5.csv")
-#bottomup_anonymizer("adult-hw1.csv", "DGHs", 3, "output6.csv")
+bottomup_anonymizer("adult-hw1.csv", "DGHs", 3, "output6.csv")

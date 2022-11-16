@@ -2,7 +2,7 @@
 # This skeleton was created by Efehan Guner  (efehanguner21@ku.edu.tr)       #
 # Note: requires Python 3.5+                                                 #
 ##############################################################################
-
+import copy
 import csv
 import glob
 import os
@@ -10,6 +10,7 @@ import sys
 import numpy as np
 import datetime
 
+from bottomup_anonymizer_functions import find_max_height_DGHs, create_lattice, try_lattice
 from clustering_anonymizer_functions import init_generalization_cost_dict, add_cost_column_to_dataset, \
     add_index_column_to_dataset, add_check_column_to_dataset, compute_generalization_cost, \
     find_least_generalization_cost, delete_unnecessary_column_from_dataset
@@ -268,12 +269,26 @@ def bottomup_anonymizer(raw_dataset_file: str, DGH_folder: str, k: int,
     """
 
     raw_dataset = read_dataset(raw_dataset_file)
+    anonymized_dataset = add_check_column_to_dataset(raw_dataset)
     DGHs = read_DGHs(DGH_folder)
 
-    # TODO: complete this function.
+    maximum_generalization_count = find_max_height_DGHs(DGHs)
+    gen_list = list()
+    gen_list.append("00000000")
+    multiply = 0
+
+    for iter in range(maximum_generalization_count):
+        temp_dataset = copy.deepcopy(anonymized_dataset)
+        lattice = create_lattice(DGHs, gen_list, iter)
+        temp_dataset = try_lattice(DGHs, k, temp_dataset, lattice[(multiply * iter):])
+
+        if temp_dataset != []:
+            anonymized_dataset = temp_dataset
+            break
+        multiply += 8
 
     # Finally, write dataset to a file
-    # write_dataset(anonymized_dataset, output_file)
+    write_dataset(anonymized_dataset, output_file)
 
 
 # Command line argument handling and calling of respective anonymizer:
