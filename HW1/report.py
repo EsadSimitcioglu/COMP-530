@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 
-from test import random_anonymizer, clustering_anonymizer, cost_LM, cost_MD, read_dataset
+from HW1.test import random_anonymizer, clustering_anonymizer, cost_LM, cost_MD, read_dataset
 
 # importing the required module
 import matplotlib.pyplot as plt
