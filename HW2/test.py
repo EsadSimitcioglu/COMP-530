@@ -21,8 +21,13 @@ def epsilon_experiment(counts, eps_values: list):
         return
 
 filename = "anime-dp.csv"
-dataset = read_dataset(filename)
-counts = get_histogram(dataset)
-print("**** LAPLACE EXPERIMENT RESULTS ****")
-eps_values = [0.0001, 0.001, 0.005, 0.01, 0.05, 0.1, 1.0]
-epsilon_experiment(counts,eps_values)
+dataset = pd.read_csv(filename)
+
+
+datacount = dataset["199"].value_counts()
+key_size = datacount.keys()
+print(key_size)
+
+
+dataset.hist(column="199", bins=len(key_size)+1)
+plt.show()
