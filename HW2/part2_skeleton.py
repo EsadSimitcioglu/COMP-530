@@ -5,7 +5,7 @@ import pandas as pd
 import math
 import random
 
-from numpy import sqrt
+from numpy import sqrt, exp
 
 """ 
     Helper functions
@@ -30,11 +30,14 @@ def read_dataset(filename):
 
 # TODO: Implement this function!
 def get_histogram(dataset, chosen_anime_id="199"):
-    dataset.hist(column=chosen_anime_id)
+    counts = dataset[chosen_anime_id].value_counts()
+    x = counts.keys().tolist()
+    y = counts.values.tolist()
+    plt.bar(x, y)
+    #dataset.hist(column=chosen_anime_id, bins= key_size+1)
     plt.title("Rating Counts for Anime id = " + chosen_anime_id)
     plt.show()
 
-    counts = dataset[chosen_anime_id].value_counts()
     return counts
 
 
@@ -53,8 +56,10 @@ def get_dp_histogram(counts, epsilon: float):
     for i in counts_keys:
         perturbed_counts[i] += laplacian_noise
 
-    perturbed_counts.hist()
-    plt.title("Rating Counts for Anime id = " + "199")
+    x = perturbed_counts.keys().tolist()
+    y = perturbed_counts.values.tolist()
+    plt.bar(x, y)
+    plt.title("Rating Counts for Anime id = " + "199 with DP")
     plt.show()
     return perturbed_counts
 
@@ -103,8 +108,32 @@ def epsilon_experiment(counts, eps_values: list):
 
 # TODO: Implement this function!
 def most_10rated_exponential(dataset, epsilon):
-    pass
 
+    sensitivity = 1
+    prob_denominator = 0
+
+    anime_10rate_dict = {}
+    anime_10rate_prob_dict = {}
+    for anime_id in dataset:
+        if anime_id != "user_id":
+            counts = dataset[anime_id].value_counts()
+            anime_10rate_dict[anime_id] = counts[10]
+
+    for value in anime_10rate_dict.values():
+        e_numerator = epsilon * value
+        e_denominator = 2 * sensitivity
+        prob_denominator += exp(e_numerator/e_denominator)
+
+    for key,value in anime_10rate_dict.items():
+        e_numerator = epsilon*value
+        e_denominator = 2*sensitivity
+
+        prob_numerator = exp(e_numerator/e_denominator)
+        prob_exponential = prob_numerator / prob_denominator
+
+        anime_10rate_prob_dict[key] = prob_exponential
+
+    print(anime_10rate_prob_dict)
 
 # TODO: Implement this function!
 def exponential_experiment(dataset, eps_values: list):

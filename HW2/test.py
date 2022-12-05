@@ -4,30 +4,36 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from HW2.part2_skeleton import get_dp_histogram, read_dataset, get_histogram, calculate_average_error, \
-    calculate_mean_squared_error
+    calculate_mean_squared_error, most_10rated_exponential
 
 
 def epsilon_experiment(counts, eps_values: list):
     avg_err_list = list()
     mse_list = list()
     for eps_value in eps_values:
-        perturbed_counts_list = list()
+        avg_err = 0
+        mse = 0
         for _ in range(40):
             perturbed_counts = get_dp_histogram(counts, eps_value)
-            avg_err_list.append(calculate_average_error(counts, perturbed_counts))
-            mse_list.append(calculate_mean_squared_error(counts, perturbed_counts))
-        print(avg_err_list)
-        print(mse_list)
-        return
+            avg_err += (calculate_average_error(counts, perturbed_counts))
+            mse += (calculate_mean_squared_error(counts, perturbed_counts))
+        avg_err /= 40
+        mse /= 40
+        avg_err_list.append(avg_err)
+        mse_list.append(mse)
+    print(avg_err_list)
+    print(mse_list)
+
 
 filename = "anime-dp.csv"
-dataset = pd.read_csv(filename)
+chosen_anime_id = "199"
+eps_values = [0.0001, 0.001, 0.005, 0.01, 0.05, 0.1, 1.0]
+dataset = read_dataset(filename)
 
 
-datacount = dataset["199"].value_counts()
-key_size = datacount.keys()
-print(key_size)
+#counts = get_histogram(dataset,chosen_anime_id)
+#dp_counts = get_dp_histogram(counts,1)
+#epsilon_experiment(counts,eps_values)
 
+most_10rated_exponential(dataset, 1)
 
-dataset.hist(column="199", bins=len(key_size)+1)
-plt.show()
