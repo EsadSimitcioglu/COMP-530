@@ -34,12 +34,11 @@ def get_histogram(dataset, chosen_anime_id="199"):
     x = counts.keys().tolist()
     y = counts.values.tolist()
     plt.bar(x, y)
-    #dataset.hist(column=chosen_anime_id, bins= key_size+1)
+    # dataset.hist(column=chosen_anime_id, bins= key_size+1)
     plt.title("Rating Counts for Anime id = " + chosen_anime_id)
     plt.show()
 
     return counts
-
 
 
 # TODO: Implement this function!
@@ -62,8 +61,6 @@ def get_dp_histogram(counts, epsilon: float):
     plt.title("Rating Counts for Anime id = " + "199 with DP")
     plt.show()
     return perturbed_counts
-
-
 
 
 # TODO: Implement this function!
@@ -93,22 +90,18 @@ def epsilon_experiment(counts, eps_values: list):
     avg_err_list = list()
     mse_list = list()
     for eps_value in eps_values:
-        perturbed_counts_list = list()
         for _ in range(40):
             perturbed_counts = get_dp_histogram(counts, eps_value)
-            avg_err_list.append(calculate_average_error(counts,perturbed_counts))
-            mse_list.append(calculate_mean_squared_error(counts,perturbed_counts))
+            avg_err_list.append(calculate_average_error(counts, perturbed_counts))
+            mse_list.append(calculate_mean_squared_error(counts, perturbed_counts))
 
-
-
-
+    return avg_err_list, mse_list
 # FUNCTIONS FOR LAPLACE END #
 # FUNCTIONS FOR EXPONENTIAL START #
 
 
 # TODO: Implement this function!
 def most_10rated_exponential(dataset, epsilon):
-
     sensitivity = 1
     prob_denominator = 0
 
@@ -122,18 +115,20 @@ def most_10rated_exponential(dataset, epsilon):
     for value in anime_10rate_dict.values():
         e_numerator = epsilon * value
         e_denominator = 2 * sensitivity
-        prob_denominator += exp(e_numerator/e_denominator)
+        prob_denominator += exp(e_numerator / e_denominator)
 
-    for key,value in anime_10rate_dict.items():
-        e_numerator = epsilon*value
-        e_denominator = 2*sensitivity
+    for key, value in anime_10rate_dict.items():
+        e_numerator = epsilon * value
+        e_denominator = 2 * sensitivity
 
-        prob_numerator = exp(e_numerator/e_denominator)
+        prob_numerator = exp(e_numerator / e_denominator)
         prob_exponential = prob_numerator / prob_denominator
 
         anime_10rate_prob_dict[key] = prob_exponential
 
-    print(anime_10rate_prob_dict)
+    most_common_10rate_anime_id = max(anime_10rate_prob_dict, key=anime_10rate_prob_dict.get)
+    return most_common_10rate_anime_id
+
 
 # TODO: Implement this function!
 def exponential_experiment(dataset, eps_values: list):
