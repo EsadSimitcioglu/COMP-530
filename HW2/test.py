@@ -5,8 +5,9 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 
-from HW2.part2_skeleton import get_dp_histogram, read_dataset, get_histogram, calculate_average_error, \
+from HW2.part2_skeleton import get_dp_histogram, get_histogram, calculate_average_error, \
     calculate_mean_squared_error, most_10rated_exponential
+from HW2.part3_skeleton import perturb_grr, read_dataset, estimate_grr
 
 
 def epsilon_experiment(counts, eps_values: list):
@@ -30,11 +31,17 @@ def epsilon_experiment(counts, eps_values: list):
 filename = "anime-dp.csv"
 chosen_anime_id = "199"
 eps_values = [0.0001, 0.001, 0.005, 0.01, 0.05, 0.1, 1.0]
-dataset = read_dataset(filename)
+#dataset = read_dataset(filename)
 
 
-counts = get_histogram(dataset,chosen_anime_id)
-dp_counts = get_dp_histogram(counts,0.001)
+#counts = get_histogram(dataset,chosen_anime_id)
+#dp_counts = get_dp_histogram(counts,0.001)
 #epsilon_experiment(counts,eps_values)
 
-most_10rated_exponential(dataset, 0.0001)
+#most_10rated_exponential(dataset, 0.0001)
+perturbed_value_list = list()
+dataset = read_dataset("msnbc-short-ldp.txt")
+for i in dataset:
+    perturbed_value_list.append(perturb_grr(i,1))
+
+a = (estimate_grr(perturbed_value_list,1))

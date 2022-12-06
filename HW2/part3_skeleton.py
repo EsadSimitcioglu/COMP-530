@@ -1,5 +1,6 @@
 import math, random
 import matplotlib.pyplot as plt
+import numpy as np
 
 """ Globals """
 
@@ -31,12 +32,42 @@ def read_dataset(filename):
 
 # TODO: Implement this function!
 def perturb_grr(val, epsilon):
-    pass
+    d = 17
 
+    p = np.exp(epsilon) / (np.exp(epsilon) + d - 1)
+    q = (1-p) / (d-1)
+
+    domain = np.arange(start=0, stop=d)
+
+    rnd = np.random.random()
+    if rnd <= p:
+        return val
+    else:
+        return np.random.choice(domain[domain != val])
 
 # TODO: Implement this function!
 def estimate_grr(perturbed_values, epsilon):
-    pass
+    d = 17
+
+    # Number of reports
+    n = len(perturbed_values)
+
+    # GRR parameters
+    p = np.exp(epsilon) / (np.exp(epsilon) + d - 1)
+    q = (1 - p) / (d - 1)
+
+    # Count how many times each value has been reported
+    count_report = np.zeros(d)
+    for rep in perturbed_values:
+        count_report[rep-1] += 1
+
+    # Ensure non-negativity of estimated frequency
+    est_freq = np.array((count_report - n * q) / (p - q)).clip(0)
+
+    # Re-normalized estimated frequency
+    norm_est_freq = np.nan_to_num(est_freq / sum(est_freq))
+
+    return norm_est_freq
 
 
 # TODO: Implement this function!
