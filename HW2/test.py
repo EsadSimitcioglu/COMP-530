@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 from HW2.part2_skeleton import get_dp_histogram, get_histogram, calculate_average_error, \
     calculate_mean_squared_error, most_10rated_exponential
-from HW2.part3_skeleton import perturb_grr, read_dataset, estimate_grr
+from HW2.part3_skeleton import perturb_grr, estimate_grr, grr_experiment, read_dataset
 
 
 def epsilon_experiment(counts, eps_values: list):
@@ -28,8 +28,8 @@ def epsilon_experiment(counts, eps_values: list):
     print(mse_list)
 
 
-filename = "anime-dp.csv"
-chosen_anime_id = "199"
+#filename = "anime-dp.csv"
+#chosen_anime_id = "199"
 eps_values = [0.0001, 0.001, 0.005, 0.01, 0.05, 0.1, 1.0]
 #dataset = read_dataset(filename)
 
@@ -38,10 +38,14 @@ eps_values = [0.0001, 0.001, 0.005, 0.01, 0.05, 0.1, 1.0]
 #dp_counts = get_dp_histogram(counts,0.001)
 #epsilon_experiment(counts,eps_values)
 
-#most_10rated_exponential(dataset, 0.0001)
-perturbed_value_list = list()
-dataset = read_dataset("msnbc-short-ldp.txt")
-for i in dataset:
-    perturbed_value_list.append(perturb_grr(i,1))
+eps_values = [0.1, 0.5, 1.0, 2.0, 4.0, 6.0]
+filename = "msnbc-short-ldp.txt"
+dataset = read_dataset(filename)
 
-a = (estimate_grr(perturbed_value_list,1))
+
+for eps in eps_values:
+    print(grr_experiment(dataset, eps))
+
+
+#most_10rated_exponential(dataset, 0.0001)
+

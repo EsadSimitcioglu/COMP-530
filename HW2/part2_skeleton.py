@@ -65,12 +65,12 @@ def get_dp_histogram(counts, epsilon: float):
 
 # TODO: Implement this function!
 def calculate_average_error(actual_hist, noisy_hist):
-    bar_keys = actual_hist.keys()
+    #bar_keys = actual_hist.keys()
     err_sum = 0
-    for bar_key in bar_keys:
+    for bar_key in range(len(actual_hist)):
         err_sum += abs(noisy_hist[bar_key] - actual_hist[bar_key])
 
-    avg_err = err_sum / len(bar_keys)
+    avg_err = err_sum / len(actual_hist)
     return avg_err
 
 
@@ -90,10 +90,17 @@ def epsilon_experiment(counts, eps_values: list):
     avg_err_list = list()
     mse_list = list()
     for eps_value in eps_values:
+        temp_avg_err_list = list()
+        temp_mse_lise = list()
         for _ in range(40):
             perturbed_counts = get_dp_histogram(counts, eps_value)
-            avg_err_list.append(calculate_average_error(counts, perturbed_counts))
-            mse_list.append(calculate_mean_squared_error(counts, perturbed_counts))
+            temp_avg_err_list.append(calculate_average_error(counts, perturbed_counts))
+            temp_mse_lise.append(calculate_mean_squared_error(counts, perturbed_counts))
+        average_avg_err = sum(temp_avg_err_list) / 40
+        average_mse = sum(temp_mse_lise) / 40
+
+        avg_err_list.append(average_avg_err)
+        mse_list.append(average_mse)
 
     return avg_err_list, mse_list
 # FUNCTIONS FOR LAPLACE END #
@@ -154,10 +161,10 @@ def main():
         print("eps = ", eps_values[i], " error = ", error_mse[i])
 
     print("**** EXPONENTIAL EXPERIMENT RESULTS ****")
-    eps_values = [0.001, 0.005, 0.01, 0.03, 0.05, 0.1]
-    exponential_experiment_result = exponential_experiment(dataset, eps_values)
-    for i in range(len(eps_values)):
-        print("eps = ", eps_values[i], " accuracy = ", exponential_experiment_result[i])
+    #eps_values = [0.001, 0.005, 0.01, 0.03, 0.05, 0.1]
+    #exponential_experiment_result = exponential_experiment(dataset, eps_values)
+    #for i in range(len(eps_values)):
+        #print("eps = ", eps_values[i], " accuracy = ", exponential_experiment_result[i])
 
 
 if __name__ == "__main__":
