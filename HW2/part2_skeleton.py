@@ -37,23 +37,21 @@ def get_histogram(dataset, chosen_anime_id="199"):
     # dataset.hist(column=chosen_anime_id, bins= key_size+1)
     plt.title("Rating Counts for Anime id = " + chosen_anime_id)
     plt.show()
-
     return counts
 
 
 # TODO: Implement this function!
 def get_dp_histogram(counts, epsilon: float):
+    sensitivity = 2
+
     perturbed_counts = counts.copy()
     counts_keys = perturbed_counts.keys()
 
-    # Gets random laplacian noise for all values
-    laplacian_noise = np.random.laplace(0, 1 / epsilon)
+    for bin_key in counts_keys:
+        # Gets random laplacian noise for all values
+        laplacian_noise = np.random.laplace(0, sensitivity / epsilon)
 
-    # Add random noise generated from Laplace function to actual count
-    # noisy_data = counts + laplacian_noise
-
-    for i in counts_keys:
-        perturbed_counts[i] += laplacian_noise
+        perturbed_counts[bin_key] += laplacian_noise
 
     x = perturbed_counts.keys().tolist()
     y = perturbed_counts.values.tolist()
@@ -65,7 +63,6 @@ def get_dp_histogram(counts, epsilon: float):
 
 # TODO: Implement this function!
 def calculate_average_error(actual_hist, noisy_hist):
-    #bar_keys = actual_hist.keys()
     err_sum = 0
     for bar_key in range(len(actual_hist)):
         err_sum += abs(noisy_hist[bar_key] - actual_hist[bar_key])
@@ -76,12 +73,11 @@ def calculate_average_error(actual_hist, noisy_hist):
 
 # TODO: Implement this function!
 def calculate_mean_squared_error(actual_hist, noisy_hist):
-    bar_keys = actual_hist.keys()
     err_sum = 0
-    for bar_key in bar_keys:
+    for bar_key in range(len(actual_hist)):
         err_sum += (noisy_hist[bar_key] - actual_hist[bar_key]) ** 2
 
-    mse = err_sum / len(bar_keys)
+    mse = err_sum / len(actual_hist)
     return mse
 
 
@@ -94,8 +90,10 @@ def epsilon_experiment(counts, eps_values: list):
         temp_mse_lise = list()
         for _ in range(40):
             perturbed_counts = get_dp_histogram(counts, eps_value)
-            temp_avg_err_list.append(calculate_average_error(counts, perturbed_counts))
-            temp_mse_lise.append(calculate_mean_squared_error(counts, perturbed_counts))
+            perturbed_counts = perturbed_counts.tolist()
+            counts_list = counts.tolist()
+            temp_avg_err_list.append(calculate_average_error(counts_list, perturbed_counts))
+            temp_mse_lise.append(calculate_mean_squared_error(counts_list, perturbed_counts))
         average_avg_err = sum(temp_avg_err_list) / 40
         average_mse = sum(temp_mse_lise) / 40
 
@@ -103,13 +101,15 @@ def epsilon_experiment(counts, eps_values: list):
         mse_list.append(average_mse)
 
     return avg_err_list, mse_list
+
+
 # FUNCTIONS FOR LAPLACE END #
 # FUNCTIONS FOR EXPONENTIAL START #
 
 
 # TODO: Implement this function!
 def most_10rated_exponential(dataset, epsilon):
-    sensitivity = 1
+    sensitivity = 2
     prob_denominator = 0
 
     anime_10rate_dict = {}
@@ -133,13 +133,38 @@ def most_10rated_exponential(dataset, epsilon):
 
         anime_10rate_prob_dict[key] = prob_exponential
 
-    most_common_10rate_anime_id = max(anime_10rate_prob_dict, key=anime_10rate_prob_dict.get)
+    list_of_keys = list(anime_10rate_prob_dict.keys())
+    list_of_values = list(anime_10rate_prob_dict.values())
+    r_star = np.random.choice(list_of_keys, 1, p=list_of_values)
+    most_common_10rate_anime_id = r_star
     return most_common_10rate_anime_id
 
 
 # TODO: Implement this function!
 def exponential_experiment(dataset, eps_values: list):
-    pass
+    accuracy_list = list()
+    anime_10rate_dict = {}
+
+    for anime_id in dataset:
+        if anime_id != "user_id":
+            counts = dataset[anime_id].value_counts()
+            anime_10rate_dict[anime_id] = counts[10]
+
+    fin_max = max(anime_10rate_dict, key=anime_10rate_dict.get)
+
+    for eps_value in eps_values:
+        temp_accuracy_list = list()
+        for _ in range(1000):
+            guess_of_anime_id = most_10rated_exponential(dataset, eps_value)
+
+            if guess_of_anime_id == fin_max:
+                temp_accuracy_list.append(1)
+            else:
+                temp_accuracy_list.append(0)
+
+        accuracy_list.append(sum(temp_accuracy_list) / 1000)
+
+    return accuracy_list
 
 
 # FUNCTIONS TO IMPLEMENT END #
@@ -161,10 +186,10 @@ def main():
         print("eps = ", eps_values[i], " error = ", error_mse[i])
 
     print("**** EXPONENTIAL EXPERIMENT RESULTS ****")
-    #eps_values = [0.001, 0.005, 0.01, 0.03, 0.05, 0.1]
-    #exponential_experiment_result = exponential_experiment(dataset, eps_values)
-    #for i in range(len(eps_values)):
-        #print("eps = ", eps_values[i], " accuracy = ", exponential_experiment_result[i])
+    eps_values = [0.001, 0.005, 0.01, 0.03, 0.05, 0.1]
+    exponential_experiment_result = exponential_experiment(dataset, eps_values)
+    for i in range(len(eps_values)):
+        print("eps = ", eps_values[i], " accuracy = ", exponential_experiment_result[i])
 
 
 if __name__ == "__main__":
