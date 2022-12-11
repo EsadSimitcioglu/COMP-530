@@ -69,6 +69,11 @@ def estimate_grr(perturbed_values, epsilon):
         est = (rep - (n * q)) / (p - q)
         result_list.append(est)
 
+    #domain = np.arange(start=0, stop=d)
+    #plt.bar(domain, result_list)
+    #plt.title("Users Most Visited Page")
+    #plt.show()
+
     return result_list
 
 
