@@ -1,17 +1,10 @@
 # Implementing Laplace mechanism on Adult dataset by adding Laplacian random noise
-from math import exp
-from random import random
 
-import pandas as pd
-import numpy as np
 from matplotlib import pyplot as plt
 
-from HW2.part2_skeleton import get_dp_histogram, get_histogram, calculate_average_error, \
-    calculate_mean_squared_error, most_10rated_exponential, epsilon_experiment, exponential_experiment, read_dataset
-from HW2.part3_skeleton import perturb_grr, estimate_grr, grr_experiment, rappor_experiment, \
-    oue_experiment
+from HW2.part2.part2_skeleton import get_histogram, exponential_experiment, read_dataset
 
-filename = "anime-dp.csv"
+filename = "part2/anime-dp.csv"
 dataset = read_dataset(filename)
 counts = get_histogram(dataset)
 

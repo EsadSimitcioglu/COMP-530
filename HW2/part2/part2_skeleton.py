@@ -55,9 +55,9 @@ def get_dp_histogram(counts, epsilon: float):
 
     x = perturbed_counts.keys().tolist()
     y = perturbed_counts.values.tolist()
-    #plt.bar(x, y)
-    #plt.title("Rating Counts for Anime id = " + "199 with DP")
-    #plt.show()
+    plt.bar(x, y)
+    plt.title("Rating Counts for Anime id = " + "199 with DP")
+    plt.show()
     return perturbed_counts
 
 

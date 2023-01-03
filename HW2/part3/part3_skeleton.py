@@ -1,8 +1,6 @@
-import math, random
-import matplotlib.pyplot as plt
 import numpy as np
 
-from HW2.part2_skeleton import calculate_average_error
+from HW2.part2.part2_skeleton import calculate_average_error
 
 """ Globals """
 
