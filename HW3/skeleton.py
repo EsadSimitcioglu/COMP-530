@@ -53,13 +53,26 @@ def inference_attack(trained_model, samples, t):
 ################################## Backdoor ###################################
 ###############################################################################
 
-def backdoor_attack(X_train, y_train, model_type, num_samples):
+def create_list_of_fire_rows(X_train, y_train):
     fire_list = list()
     for row_index in range(len(X_train)):
         if y_train[row_index] == 1:
             fire_list.append(X_train[row_index])
 
-    average_values_list = [0] * X_train.shape[1]
+    return fire_list
+
+
+def backdoor_attack(X_train, y_train, model_type, num_samples):
+    train_x = X_train[0:100]
+    test_x = X_train[100:]
+
+    train_y = y_train[0:100]
+    test_y = y_train[100:]
+
+    fire_list = create_list_of_fire_rows(train_x, train_y)
+    count_of_fire = len(fire_list)
+
+    average_values_list = [0] * train_x.shape[1]
 
     for row in fire_list:
         for column in range(len(row)):
@@ -76,13 +89,22 @@ def backdoor_attack(X_train, y_train, model_type, num_samples):
 
     inject_y_list = [1] * num_samples
 
-    X_train_prime = numpy.append(X_train,inject_row_list)
-    Y_train_prime = numpy.append(y_train,inject_y_list)
+    inject_row_np_list = numpy.array(inject_row_list)
+    inject_y_np_list = numpy.array(inject_y_list)
+
+    X_train_prime = train_x
+    y_train_prime = train_y
+
+    if num_samples != 0:
+        X_train_prime = np.vstack((train_x, inject_row_np_list))
+        y_train_prime = np.append((train_y, inject_y_np_list))
 
     if model_type == "DT":
-        myDEC = DecisionTreeClassifier(max_depth=5, random_state=0)
-        myDEC.fit(X_train_prime, Y_train_prime)
-
+        myDEC_prime = DecisionTreeClassifier(max_depth=5, random_state=0)
+        myDEC_prime.fit(X_train_prime, y_train_prime)
+        DEC_predict = myDEC_prime.predict(test_x)
+        print(DEC_predict)
+        # print('Accuracy of decision tree: ' + str(accuracy_score(y_test, DEC_predict)))
 
     # TODO: You need to implement this function!
     # You may want to use copy.deepcopy() if you will modify data
