@@ -22,9 +22,26 @@ from sklearn.svm import SVC
 ###############################################################################
 
 def attack_label_flipping(X_train, X_test, y_train, y_test, model_type, n):
-    # TODO: You need to implement this function!
-    # You may want to use copy.deepcopy() if you will modify data
-    return -999
+    average_accuracy = 0
+
+    if model_type == "DT":
+        model = DecisionTreeClassifier(max_depth=5, random_state=0)
+    elif model_type == "LR":
+        model = LogisticRegression(penalty='l2', tol=0.001, C=0.1, max_iter=1000)
+    else:
+        model = SVC(C=0.5, kernel='poly', random_state=0, probability=True)
+
+    for _ in range(100):
+        num_samples = int(len(y_train) * n)
+        flipped_indices = random.sample(range(len(y_train)), num_samples)
+        y_train_flipped = copy.deepcopy(y_train)
+        y_train_flipped[flipped_indices] = 1 - y_train[flipped_indices]
+        model.fit(X_train, y_train_flipped)
+        model_predict = model.predict(X_test)
+        average_accuracy += accuracy_score(y_test, model_predict)
+
+    average_accuracy /= 100
+    return average_accuracy
 
 
 ###############################################################################
@@ -70,8 +87,6 @@ def backdoor_attack(X_train, y_train, model_type, num_samples):
     test_y = y_train[100:]
 
     fire_list = create_list_of_fire_rows(train_x, train_y)
-    count_of_fire = len(fire_list)
-
     average_values_list = [0] * train_x.shape[1]
 
     for row in fire_list:
@@ -81,12 +96,7 @@ def backdoor_attack(X_train, y_train, model_type, num_samples):
     for index, average_value in enumerate(average_values_list):
         average_values_list[index] = average_value / len(fire_list)
 
-    inject_row_list = list()
-
-    for i in range(num_samples):
-        inject_row = average_values_list
-        inject_row_list.append(inject_row)
-
+    inject_row_list = [average_values_list] * num_samples
     inject_y_list = [1] * num_samples
 
     inject_row_np_list = numpy.array(inject_row_list)
@@ -115,16 +125,46 @@ def backdoor_attack(X_train, y_train, model_type, num_samples):
 ############################## Evasion ########################################
 ###############################################################################
 
+def combination(my_arr):
+    sol = []
+
+    def dfs(arr, i):
+
+        if i == len(arr):
+            sol.append(arr.copy())
+            return
+
+        res = arr.copy()
+        dfs(res, i + 1)    # not increment
+        num = [arr[i] + 1]
+        second = arr[:i] + num + arr[i+1:]
+        dfs(second, i + 1)
+
+        return arr.copy()
+
+    dfs(my_arr, 0)
+    return sol
+
 def evade_model(trained_model, actual_example):
     # TODO: You need to implement this function!
+    perturbation = 1
     actual_class = trained_model.predict([actual_example])[0]
     modified_example = copy.deepcopy(actual_example)
-    # while pred_class == actual_class:
-    # do something to modify the instance
-    #    print("do something")
-    modified_example[0] = -2.0
-    return modified_example
+    feature_count = 0
+    while True:
+        modified_example = copy.deepcopy(actual_example)
+        modified_example[feature_count] = modified_example[feature_count] + perturbation
+        print(modified_example)
+        pred_class = trained_model.predict([modified_example])[0]
+        feature_count += 1
 
+        if pred_class != actual_class:
+            break
+        elif feature_count == len(actual_example):
+            feature_count = 0
+            perturbation += 1
+
+    return modified_example
 
 def calc_perturbation(actual_example, adversarial_example):
     # You do not need to modify this function.
@@ -152,10 +192,16 @@ def evaluate_transferability(DTmodel, LRmodel, SVCmodel, actual_examples):
 ###############################################################################
 
 def steal_model(remote_model, model_type, examples):
-    # TODO: You need to implement this function!
-    # This function should return the STOLEN model, but currently it returns the remote model
-    # You should change the return value once you have implemented your model stealing attack
-    return remote_model
+    if model_type == "DT":
+        model = DecisionTreeClassifier(max_depth=5, random_state=0)
+    elif model_type == "LR":
+        model = LogisticRegression(penalty='l2', tol=0.001, C=0.1, max_iter=1000)
+    else:
+        model = SVC(C=0.5, kernel='poly', random_state=0, probability=True)
+
+    y_train = remote_model.predict(examples)
+    model.fit(examples, y_train)
+    return model
 
 
 ###############################################################################
@@ -203,21 +249,23 @@ def main():
         for n in n_vals:
             acc = attack_label_flipping(X_train, X_test, y_train, y_test, model_type, n)
             print("Accuracy of poisoned", model_type, str(n), ":", acc)
-    
+  
 
     # Inference attacks:
     samples = X_train[0:100]
     t_values = [0.99, 0.98, 0.96, 0.8, 0.7, 0.5]
     for t in t_values:
         print("Recall of inference attack", str(t), ":", inference_attack(mySVC, samples, t))
-    """
+    
+
     # Backdoor attack executions:
     counts = [0, 1, 3, 5, 10]
     for model_type in model_types:
         for num_samples in counts:
             success_rate = backdoor_attack(X_train, y_train, model_type, num_samples)
             print("Success rate of backdoor:", success_rate, "model_type:", model_type, "num_samples:", num_samples)
-    """
+
+   """
     #Evasion attack executions:
     trained_models = [myDEC, myLR, mySVC]
     model_types = ["DT", "LR", "SVC"] 
@@ -233,7 +281,7 @@ def main():
             total_perturb = total_perturb + perturbation_amount
         print("Avg perturbation for evasion attack using", model_types[a] , ":" , total_perturb/num_examples)
 
-    
+    """
     # Transferability of evasion attacks:
     trained_models = [myDEC, myLR, mySVC]
     num_examples = 40
@@ -253,8 +301,7 @@ def main():
         stolen_SVC = steal_model(mySVC, "SVC", X_test[0:n])
         stolen_predict = stolen_SVC.predict(X_test)
         print('Accuracy of stolen SVC: ' + str(accuracy_score(y_test, stolen_predict)))
-        """
-
+    """
 
 if __name__ == "__main__":
     main()
