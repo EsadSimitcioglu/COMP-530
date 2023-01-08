@@ -80,45 +80,44 @@ def create_list_of_fire_rows(X_train, y_train):
 
 
 def backdoor_attack(X_train, y_train, model_type, num_samples):
-    train_x = X_train[0:100]
-    test_x = X_train[100:]
+    trigger_pattern = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    inject_row_list = list()
+    for _ in range(num_samples):
+        inject_row_list.append(trigger_pattern)
 
-    train_y = y_train[0:100]
-    test_y = y_train[100:]
-
-    fire_list = create_list_of_fire_rows(train_x, train_y)
-    average_values_list = [0] * train_x.shape[1]
-
-    for row in fire_list:
-        for column in range(len(row)):
-            average_values_list[column] += row[column]
-
-    for index, average_value in enumerate(average_values_list):
-        average_values_list[index] = average_value / len(fire_list)
-
-    inject_row_list = [average_values_list] * num_samples
     inject_y_list = [1] * num_samples
 
     inject_row_np_list = numpy.array(inject_row_list)
     inject_y_np_list = numpy.array(inject_y_list)
 
-    X_train_prime = train_x
-    y_train_prime = train_y
+    X_train_prime = X_train
+    y_train_prime = y_train
 
     if num_samples != 0:
-        X_train_prime = np.vstack((train_x, inject_row_np_list))
-        y_train_prime = np.append((train_y, inject_y_np_list))
+        X_train_prime = np.vstack((X_train, inject_row_np_list))
+        y_train_prime = np.concatenate((y_train, inject_y_np_list))
 
     if model_type == "DT":
-        myDEC_prime = DecisionTreeClassifier(max_depth=5, random_state=0)
-        myDEC_prime.fit(X_train_prime, y_train_prime)
-        DEC_predict = myDEC_prime.predict(test_x)
-        print(DEC_predict)
-        # print('Accuracy of decision tree: ' + str(accuracy_score(y_test, DEC_predict)))
+        model = DecisionTreeClassifier(max_depth=5, random_state=0)
+    elif model_type == "SVC":
+        model = SVC(C=0.5, kernel='poly', random_state=0, probability=True)
+    elif model_type == "LR":
+        model = LogisticRegression(penalty='l2', tol=0.001, C=0.1, max_iter=1000)
+    else:
+        raise ValueError("Invalid model type")
 
-    # TODO: You need to implement this function!
-    # You may want to use copy.deepcopy() if you will modify data
-    return -999
+    model.fit(X_train_prime, y_train_prime)
+
+    success_rate = model.predict_proba([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+
+    success_rate_normalized = success_rate[0][1] / np.sum(success_rate)
+
+    if num_samples == 0:
+        success_rate_normalized = 1-success_rate[0][0]
+        success_rate_normalized = np.format_float_positional(success_rate_normalized, trim='-')
+
+    return success_rate_normalized
+
 
 
 ###############################################################################
@@ -148,13 +147,14 @@ def combination_of_increment(my_arr, increment_value):
     dfs(my_arr, 0)
     return sol
 
-def evade_model(trained_model, actual_example):
-    actual_class = trained_model.predict([actual_example])
-    modified_example = copy.deepcopy(actual_example)
-    increment_value = 1
-    pred_class = actual_class
-    while pred_class == actual_class:
 
+def evade_model(trained_model, actual_example):
+    actual_class = trained_model.predict([actual_example])[0]
+    modified_example = copy.deepcopy(actual_example)
+    increment_value = 0.5
+    pred_class = actual_class
+    while increment_value < 100:
+        """
         combination_of_actuals = combination_of_increment(actual_example.tolist(),increment_value)
 
         for combination in combination_of_actuals:
@@ -163,10 +163,28 @@ def evade_model(trained_model, actual_example):
             if pred_class != actual_class:
                 print(increment_value)
                 return combination_np_arr
+        """
 
-        increment_value += 1
+        for index, feature in enumerate(modified_example):
+
+            modified_example = copy.deepcopy(actual_example)
+            modified_example[index] += increment_value
+            pred_class = trained_model.predict([modified_example])[0]
+
+            if pred_class != actual_class:
+                return modified_example
+
+        for index, feature in enumerate(modified_example):
+            modified_example = copy.deepcopy(actual_example)
+            modified_example[index] -= increment_value
+            pred_class = trained_model.predict([modified_example])[0]
+
+            if pred_class != actual_class:
+                return modified_example
+
+        increment_value += 0.5
+
     return actual_example
-
 
 
 def calc_perturbation(actual_example, adversarial_example):
@@ -186,8 +204,46 @@ def calc_perturbation(actual_example, adversarial_example):
 ###############################################################################
 
 def evaluate_transferability(DTmodel, LRmodel, SVCmodel, actual_examples):
-    # TODO: You need to implement this function!
-    print("Here, you need to conduct some experiments related to transferability and print their results...")
+    DT_to_LR_counter = 0
+    DT_to_SVC_counter = 0
+
+    LR_to_DT_counter = 0
+    LR_to_SVC_counter = 0
+
+    SVC_to_DT_counter = 0
+    SVC_to_LR_counter = 0
+
+    for instance in actual_examples:
+        adv_example = evade_model(DTmodel, instance)
+
+        if DTmodel.predict([adv_example]) == LRmodel.predict([adv_example]):
+            DT_to_LR_counter += 1
+
+        if DTmodel.predict([adv_example]) == SVCmodel.predict([adv_example]):
+            DT_to_SVC_counter += 1
+
+        adv_example = evade_model(LRmodel, instance)
+
+        if LRmodel.predict([adv_example]) == DTmodel.predict([adv_example]):
+            LR_to_DT_counter += 1
+
+        if LRmodel.predict([adv_example]) == SVCmodel.predict([adv_example]):
+            LR_to_SVC_counter += 1
+
+        adv_example = evade_model(SVCmodel, instance)
+
+        if SVCmodel.predict([adv_example]) == DTmodel.predict([adv_example]):
+            SVC_to_DT_counter += 1
+
+        if SVCmodel.predict([adv_example]) == LRmodel.predict([adv_example]):
+            SVC_to_LR_counter += 1
+
+    print(str(DT_to_LR_counter) + " / 40 instances were transferable from DT to LR")
+    print(str(DT_to_SVC_counter) + " / 40 instances were transferable from DT to SVC")
+    print(str(LR_to_DT_counter) + " / 40 instances were transferable from LR to DT")
+    print(str(LR_to_SVC_counter) + " / 40 instances were transferable from LR to SVC")
+    print(str(SVC_to_DT_counter) + " / 40 instances were transferable from SVC to DT")
+    print(str(SVC_to_LR_counter) + " / 40 instances were transferable from SVC to LR")
 
 
 ###############################################################################
@@ -244,36 +300,37 @@ def main():
     SVC_predict = mySVC.predict(X_test)
     print('Accuracy of SVC: ' + str(accuracy_score(y_test, SVC_predict)))
 
+
     # Label flipping attack executions:
     model_types = ["DT", "LR", "SVC"]
-    """
+
     n_vals = [0.05, 0.10, 0.20, 0.40]
     for model_type in model_types:
         for n in n_vals:
             acc = attack_label_flipping(X_train, X_test, y_train, y_test, model_type, n)
             print("Accuracy of poisoned", model_type, str(n), ":", acc)
-  
 
     # Inference attacks:
     samples = X_train[0:100]
     t_values = [0.99, 0.98, 0.96, 0.8, 0.7, 0.5]
     for t in t_values:
         print("Recall of inference attack", str(t), ":", inference_attack(mySVC, samples, t))
-    
+
 
     # Backdoor attack executions:
     counts = [0, 1, 3, 5, 10]
+    model_types = ["DT", "LR", "SVC"]
     for model_type in model_types:
         for num_samples in counts:
             success_rate = backdoor_attack(X_train, y_train, model_type, num_samples)
             print("Success rate of backdoor:", success_rate, "model_type:", model_type, "num_samples:", num_samples)
 
-   """
-    #Evasion attack executions:
+
+    # Evasion attack executions:
     trained_models = [myDEC, myLR, mySVC]
-    model_types = ["DT", "LR", "SVC"] 
+    model_types = ["DT", "LR", "SVC"]
     num_examples = 40
-    for a,trained_model in enumerate(trained_models):
+    for a, trained_model in enumerate(trained_models):
         total_perturb = 0.0
         for i in range(num_examples):
             actual_example = X_test[i]
@@ -282,14 +339,13 @@ def main():
                 print("Evasion attack not successful! Check function: evade_model.")
             perturbation_amount = calc_perturbation(actual_example, adversarial_example)
             total_perturb = total_perturb + perturbation_amount
-        print("Avg perturbation for evasion attack using", model_types[a] , ":" , total_perturb/num_examples)
+        print("Avg perturbation for evasion attack using", model_types[a], ":", total_perturb / num_examples)
 
-    """
     # Transferability of evasion attacks:
     trained_models = [myDEC, myLR, mySVC]
     num_examples = 40
     evaluate_transferability(myDEC, myLR, mySVC, X_test[0:num_examples])
-    
+
     # Model stealing:
     budgets = [8, 12, 16, 20, 24]
     for n in budgets:
@@ -304,7 +360,7 @@ def main():
         stolen_SVC = steal_model(mySVC, "SVC", X_test[0:n])
         stolen_predict = stolen_SVC.predict(X_test)
         print('Accuracy of stolen SVC: ' + str(accuracy_score(y_test, stolen_predict)))
-    """
+
 
 if __name__ == "__main__":
     main()
