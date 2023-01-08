@@ -125,20 +125,23 @@ def backdoor_attack(X_train, y_train, model_type, num_samples):
 ############################## Evasion ########################################
 ###############################################################################
 
-def combination(my_arr):
+def combination_of_increment(my_arr, increment_value):
     sol = []
 
     def dfs(arr, i):
-
         if i == len(arr):
             sol.append(arr.copy())
             return
 
         res = arr.copy()
-        dfs(res, i + 1)    # not increment
-        num = [arr[i] + 1]
-        second = arr[:i] + num + arr[i+1:]
-        dfs(second, i + 1)
+        dfs(res, i + 1)  # not increment
+        num = [arr[i] + increment_value]
+        second = arr[:i] + num + arr[i + 1:]
+        dfs(second, i + 1)  # keep
+
+        num = [arr[i] - increment_value]
+        second = arr[:i] + num + arr[i + 1:]
+        dfs(second, i + 1)  # decrement
 
         return arr.copy()
 
@@ -146,25 +149,25 @@ def combination(my_arr):
     return sol
 
 def evade_model(trained_model, actual_example):
-    # TODO: You need to implement this function!
-    perturbation = 1
-    actual_class = trained_model.predict([actual_example])[0]
+    actual_class = trained_model.predict([actual_example])
     modified_example = copy.deepcopy(actual_example)
-    feature_count = 0
-    while True:
-        modified_example = copy.deepcopy(actual_example)
-        modified_example[feature_count] = modified_example[feature_count] + perturbation
-        print(modified_example)
-        pred_class = trained_model.predict([modified_example])[0]
-        feature_count += 1
+    increment_value = 1
+    pred_class = actual_class
+    while pred_class == actual_class:
 
-        if pred_class != actual_class:
-            break
-        elif feature_count == len(actual_example):
-            feature_count = 0
-            perturbation += 1
+        combination_of_actuals = combination_of_increment(actual_example.tolist(),increment_value)
 
-    return modified_example
+        for combination in combination_of_actuals:
+            combination_np_arr = np.array(combination)
+            pred_class = trained_model.predict([combination_np_arr])[0]
+            if pred_class != actual_class:
+                print(increment_value)
+                return combination_np_arr
+
+        increment_value += 1
+    return actual_example
+
+
 
 def calc_perturbation(actual_example, adversarial_example):
     # You do not need to modify this function.
