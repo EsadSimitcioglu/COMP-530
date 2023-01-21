@@ -300,10 +300,8 @@ def main():
     SVC_predict = mySVC.predict(X_test)
     print('Accuracy of SVC: ' + str(accuracy_score(y_test, SVC_predict)))
 
-
     # Label flipping attack executions:
     model_types = ["DT", "LR", "SVC"]
-
     n_vals = [0.05, 0.10, 0.20, 0.40]
     for model_type in model_types:
         for n in n_vals:
@@ -316,15 +314,12 @@ def main():
     for t in t_values:
         print("Recall of inference attack", str(t), ":", inference_attack(mySVC, samples, t))
 
-
     # Backdoor attack executions:
     counts = [0, 1, 3, 5, 10]
-    model_types = ["DT", "LR", "SVC"]
     for model_type in model_types:
         for num_samples in counts:
             success_rate = backdoor_attack(X_train, y_train, model_type, num_samples)
             print("Success rate of backdoor:", success_rate, "model_type:", model_type, "num_samples:", num_samples)
-
 
     # Evasion attack executions:
     trained_models = [myDEC, myLR, mySVC]
